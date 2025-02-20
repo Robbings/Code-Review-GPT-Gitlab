@@ -155,6 +155,50 @@
 
 
 
+### 5. 特定问题处理：sync.Pool问题
+
+#### ⚠️**注意：本项目仅能提供辅助检测，且存在误报和漏报现象，请注意甄别。**
+
+1. 配置黑白名单：如需只针对某些仓库开启/不开启该问题审核，请配置``review_engine/handler/sync_pool_handler.py``中``SyncPoolHandler``类的初始化方法中的黑白名单：
+
+   ```python
+   class SyncPoolHandler(ReviewHandle):
+   
+       def __init__(self):
+           super().__init__()
+           self.maximum_files = 50 # 最大文件数, 超过此文件数则不进行review
+           # 白名单, 在白名单中的项目进行review，为空时所有项目进行review，优先级高于黑名单
+           self.white_project_list = ['白名单示例1', '白名单示例2'] 
+           # 黑名单, 在黑名单中的项目不进行review
+           self.black_project_list = ['黑名单示例1', '黑名单示例2'] 
+   ```
+
+2. 处理逻辑：
+
+   > 1. 当变更项目为go文件且使用sync.Pool时触发检查
+   > 2. 本检查只针对某一结构体中各字段声明后，有无在Reset方法中进行初始化操作，不关注初始化操作是否得当。
+   >    1. 如果字段声明后，没有在Reset中初始化，则报错：❌该Reset存在问题
+   >    2. 如果字段已经初始化，但是初始化方式不得当，可能不报错，或报警告：❕可能存在问题
+   >    3. 如果项目中不存在Reset方法，则报警告：🤔未找到相关代码
+   > 3. 如果有错误，则会通过钉钉发送报警提醒用户，并将报告发送到gitlab和钉钉等平台。
+   > 4. 如果没有错误，则仅发送报告
+
+3. 结果示例：
+
+   1. 检测出现问题：
+
+      <p align="center">
+        <img src="doc/img/sync_error.png" style="width:500px;"/>
+      </p>
+
+   2. 检测没有问题：
+
+      <p align="center">
+        <img src="doc/img/sync_right.png" style="width:500px;"/>
+      </p>
+
+
+
 
 # 部署 📖
 
